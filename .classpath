@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="lib/fontbox-2.0.13.jar"/>
+	<classpathentry kind="lib" path="lib/jbig2-imageio-3.0.2.jar"/>
+	<classpathentry kind="lib" path="lib/pdfbox-2.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/pdfbox-app-2.0.15.jar"/>
+	<classpathentry kind="lib" path="lib/pdfbox-tools-2.0.15.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
