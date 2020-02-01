@@ -95,6 +95,8 @@ public class Controller {
 
                 if (files != null && files.length > 1) {
                     view.getPanelUnir().getBtnMerge().setVisible(true);
+                    view.getPanelUnir().getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
+                    
                 }
 
             } else {
@@ -122,8 +124,7 @@ public class Controller {
     private void unirPdfs() {
         fileDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
-        int returnVal = fileDialog.showOpenDialog(view.getContentPane());
-        if (returnVal == JFileChooser.APPROVE_OPTION) {
+        if (fileDialog.showOpenDialog(view.getContentPane()) == JFileChooser.APPROVE_OPTION) {
             try {
 
                 for (File file : files) {

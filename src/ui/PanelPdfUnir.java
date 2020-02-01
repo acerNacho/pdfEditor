@@ -12,8 +12,8 @@ public class PanelPdfUnir extends JPanel {
 	 *
 	 */
 	private static final long serialVersionUID = 1L;
-    private JLabel headerLabel = new JLabel("");
-	private JLabel statusLabel= new JLabel("");
+    private JLabel headerLabel = new JLabel("", JLabel.CENTER);
+	private JLabel statusLabel= new JLabel("", JLabel.CENTER);
 	private JButton btnFiles = new JButton("Seleccionar pdfs");
     private JButton btnMerge = new JButton("Unir");
     
