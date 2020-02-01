@@ -19,6 +19,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Date;
 
 import javax.swing.JFileChooser;
@@ -30,27 +32,24 @@ import ui.View;
 public class Controller {
     private static View view;
     private final JFileChooser fileDialog = new JFileChooser();
-    private File file1;
-    private File file2;
-    private PDDocument pdf1;
-    private PDDocument pdf2;
+    private File files[];
+    private ArrayList<PDDocument> pdfs = new ArrayList<>();
 
     /**
-	 * Whether or not debug output is printed to the console.
-	 */
-	public static boolean SHOW_DEBUG = true;
-	
-	/**
-	 * The suggested prefix to add to output files. 
-	 */
-	public static String DESTINATION_FILENAME_PREFIX = "PDFPLANO--";
-	
-	/**
-	 * The DPI that should be used when generating images.
-	 * Higher DPI increases the memory requirements and output file sizes, but also produces sharper images.
-	 */
-	    public static int IMAGE_DPI = 200;
+     * Whether or not debug output is printed to the console.
+     */
+    public static boolean SHOW_DEBUG = true;
 
+    /**
+     * The suggested prefix to add to output files.
+     */
+    public static String DESTINATION_FILENAME_PREFIX = "PDFPLANO--";
+
+    /**
+     * The DPI that should be used when generating images. Higher DPI increases the
+     * memory requirements and output file sizes, but also produces sharper images.
+     */
+    public static int IMAGE_DPI = 200;
 
     Controller(View view) {
         Controller.view = view;
@@ -65,13 +64,8 @@ public class Controller {
         @Override
         public void actionPerformed(ActionEvent e) {
             switch (e.getActionCommand()) {
-            case "Seleccionar 1":
-                pdf1 = new PDDocument();
-                archivoUno();
-                break;
-            case "Seleccionar 2":
-                pdf2 = new PDDocument();
-                archivoDos();
+            case "Seleccionar pdfs":
+                select();
                 break;
             case "Unir":
                 unirPdfs();
@@ -87,35 +81,22 @@ public class Controller {
 
     }
 
-    private void archivoUno() {
+    private void select() {
         fileDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fileDialog.setMultiSelectionEnabled(true);
+        fileDialog.addChoosableFileFilter(new FileNameExtensionFilter("Documentos PDF", "pdf"));
+        fileDialog.setAcceptAllFileFilterUsed(false);
+        
         int returnVal = fileDialog.showOpenDialog(view.getContentPane());
 
         try {
             if (returnVal == JFileChooser.APPROVE_OPTION) {
-                file1 = fileDialog.getSelectedFile();
-                pdf1 = PDDocument.load(file1);
-                if (file2 != null && file1 != null) {
-                    view.getPanelUnir().getBtnMerge().setVisible(true);
-                }
-            } else {
-                view.getPanelUnir().getStatusLabel().setText("Cancelado por el usuario");
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-    }
+                files = fileDialog.getSelectedFiles();
 
-    private void archivoDos() {
-        fileDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        int returnVal = fileDialog.showOpenDialog(view.getContentPane());
-        try {
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                file2 = fileDialog.getSelectedFile();
-                pdf2 = PDDocument.load(file1);
-                if (file2 != null && file1 != null) {
+                if (files != null && files.length > 1) {
                     view.getPanelUnir().getBtnMerge().setVisible(true);
                 }
+
             } else {
                 view.getPanelUnir().getStatusLabel().setText("Cancelado por el usuario");
             }
@@ -127,28 +108,51 @@ public class Controller {
     private String getSeparatorBarByOS() {
         String OS = System.getProperty("os.name").toLowerCase();
         String osCharacter = (OS.indexOf("win") >= 0 || OS.indexOf("mac") >= 0) ? "\\" : "/";
+        String aux = "";
+
+        for (int i = 0; i<files.length-1; i++) {
+            aux+=files[i].getName().substring(0, files[i].getName().length() - 4) + " union ";
+        }
 
         return fileDialog.getSelectedFile().toString() + osCharacter
-                + file1.getName().substring(0, file1.getName().length() - 4) + " union "
-                + file2.getName().substring(0, file2.getName().length() - 4) + ".pdf";
+                + aux
+                + files[files.length-1].getName().substring(0, files[files.length-1].getName().length() - 4) + ".pdf";
     }
 
     private void unirPdfs() {
         fileDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+
         int returnVal = fileDialog.showOpenDialog(view.getContentPane());
         if (returnVal == JFileChooser.APPROVE_OPTION) {
             try {
+
+                for (File file : files) {
+
+                    PDDocument pdf = PDDocument.load(file);
+                    pdfs.add(pdf);
+                }
+
                 System.out.println("uniendo");
                 PDFMergerUtility PDFmerger = new PDFMergerUtility();
                 System.out.println(getSeparatorBarByOS());
 
                 PDFmerger.setDestinationFileName(getSeparatorBarByOS());
 
-                PDFmerger.addSource(file1);
-                PDFmerger.addSource(file2);
+                for (File file : files) {
+                    PDFmerger.addSource(file);
+                }
+
                 PDFmerger.mergeDocuments(MemoryUsageSetting.setupTempFileOnly());
-                pdf1.close();
-                pdf2.close();
+
+
+                pdfs.forEach(pdf -> {
+                    try {
+                        pdf.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+
                 view.getPanelUnir().getStatusLabel().setText("Se ha creado el pdf sin errores");
             } catch (Exception ex) {
                 view.getPanelUnir().getStatusLabel().setText("Se produjo un error al crear el PDF");

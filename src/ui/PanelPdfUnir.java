@@ -14,31 +14,26 @@ public class PanelPdfUnir extends JPanel {
 	private static final long serialVersionUID = 1L;
     private JLabel headerLabel = new JLabel("");
 	private JLabel statusLabel= new JLabel("");
-	private JButton btnFile1 = new JButton("Seleccionar 1");
-	private JButton btnFile2 = new JButton("Seleccionar 2");
+	private JButton btnFiles = new JButton("Seleccionar pdfs");
     private JButton btnMerge = new JButton("Unir");
     
     public PanelPdfUnir() {
         setLayout(new GridLayout(4, 2, 5, 5));
         
-        JLabel lblFile1 = new JLabel("Archivo 1", JLabel.CENTER);
-        JLabel lblFile2 = new JLabel("Archivo 2", JLabel.CENTER);
+        JLabel lblFiles = new JLabel("Archivos seleccionados", JLabel.CENTER);
         
         statusLabel.setSize(250, 100);
         btnMerge.setVisible(false);
 
         headerLabel.setText("Elija los pdfs a unir y luego el destino");
 		
-		btnFile1.setAlignmentX(JButton.CENTER);
+		btnFiles.setAlignmentX(JButton.CENTER);
 
 
         add(headerLabel);
 	    add(new JPanel());
-		add(lblFile1);
-		add(btnFile1);
-
-		add(lblFile2);
-		add(btnFile2);
+		add(lblFiles);
+		add(btnFiles);
 
 		add(statusLabel);
 
@@ -53,12 +48,8 @@ public class PanelPdfUnir extends JPanel {
 		return statusLabel;
 	}
 
-	public JButton getBtnFile1() {
-		return btnFile1;
-	}
-
-	public JButton getBtnFile2() {
-		return btnFile2;
+	public JButton getBtnFiles() {
+		return btnFiles;
 	}
 
 	public JButton getBtnMerge() {
