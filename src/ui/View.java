@@ -28,9 +28,8 @@ public class View extends JFrame {
 	public View() {
 		crearGUI();
 		
-		setVisible(true);
+		setTitle("PDF Merge & Flat - Por I. Arce - v0.2");
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setTitle("PDF Merge & Flat - Por I. Arce - v0.1");
 		setLocationRelativeTo(null);
 		setSize(600, 200);
 	}

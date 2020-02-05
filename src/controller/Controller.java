@@ -9,6 +9,8 @@ import org.apache.pdfbox.pdmodel.DefaultResourceCache;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
@@ -30,6 +32,9 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 import ui.View;
 
 public class Controller {
+    private static final String OWNER_PASSWORD = "prueba";
+    private static final String USER_PASSWORD = "secreta";
+    private static final int KEY_LENGTH = 128;
     private static View view;
     private final JFileChooser fileDialog = new JFileChooser();
     private File files[];
@@ -65,12 +70,19 @@ public class Controller {
         public void actionPerformed(ActionEvent e) {
             switch (e.getActionCommand()) {
             case "Seleccionar pdfs":
-                select();
+                files = selectFiles();
+                if (files != null && files.length > 1) {
+                    view.getPanelUnir().getBtnMerge().setVisible(true);
+                    view.getPanelUnir().getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
+                } else {
+                    view.getPanelUnir().getStatusLabel().setText("Cancelado por el usuario");
+                }
                 break;
             case "Unir":
                 unirPdfs();
                 break;
             case "Asegurar Pdf":
+                files = selectFiles();
                 asegurarPdf();
                 break;
             default:
@@ -81,44 +93,30 @@ public class Controller {
 
     }
 
-    private void select() {
+    private File[] selectFiles() {
         fileDialog.setFileSelectionMode(JFileChooser.FILES_ONLY);
         fileDialog.setMultiSelectionEnabled(true);
         fileDialog.addChoosableFileFilter(new FileNameExtensionFilter("Documentos PDF", "pdf"));
         fileDialog.setAcceptAllFileFilterUsed(false);
-        
+
         int returnVal = fileDialog.showOpenDialog(view.getContentPane());
 
-        try {
-            if (returnVal == JFileChooser.APPROVE_OPTION) {
-                files = fileDialog.getSelectedFiles();
-
-                if (files != null && files.length > 1) {
-                    view.getPanelUnir().getBtnMerge().setVisible(true);
-                    view.getPanelUnir().getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
-                    
-                }
-
-            } else {
-                view.getPanelUnir().getStatusLabel().setText("Cancelado por el usuario");
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+        if (returnVal == JFileChooser.APPROVE_OPTION) {
+            return fileDialog.getSelectedFiles();
         }
+        return null;
     }
 
     private String getSeparatorBarByOS() {
-        String OS = System.getProperty("os.name").toLowerCase();
-        String osCharacter = (OS.indexOf("win") >= 0 || OS.indexOf("mac") >= 0) ? "\\" : "/";
         String aux = "";
 
-        for (int i = 0; i<files.length-1; i++) {
-            aux+=files[i].getName().substring(0, files[i].getName().length() - 4) + " union ";
+        for (int i = 0; i < files.length - 1; i++) {
+            aux += files[i].getName().substring(0, files[i].getName().length() - 4) + " union ";
         }
 
-        return fileDialog.getSelectedFile().toString() + osCharacter
-                + aux
-                + files[files.length-1].getName().substring(0, files[files.length-1].getName().length() - 4) + ".pdf";
+        return fileDialog.getSelectedFile().toString() + File.separator + aux
+                + files[files.length - 1].getName().substring(0, files[files.length - 1].getName().length() - 4)
+                + ".pdf";
     }
 
     private void unirPdfs() {
@@ -135,7 +133,6 @@ public class Controller {
 
                 System.out.println("uniendo");
                 PDFMergerUtility PDFmerger = new PDFMergerUtility();
-                System.out.println(getSeparatorBarByOS());
 
                 PDFmerger.setDestinationFileName(getSeparatorBarByOS());
 
@@ -144,7 +141,6 @@ public class Controller {
                 }
 
                 PDFmerger.mergeDocuments(MemoryUsageSetting.setupTempFileOnly());
-
 
                 pdfs.forEach(pdf -> {
                     try {
@@ -163,90 +159,29 @@ public class Controller {
     }
 
     private void asegurarPdf() {
-    
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.addChoosableFileFilter(new FileNameExtensionFilter("Documentos PDF", "pdf"));
-        fileChooser.setAcceptAllFileFilterUsed(false);
+        fileDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        fileDialog.setDialogTitle("Elegir a donde guardar PDF - (PDF Plano - Por IA)");
+        fileDialog.setApproveButtonText("Seleccionar");
 
-        /*
-         * Get the source file
-         */
+        if (fileDialog.showOpenDialog(view.getContentPane()) == JFileChooser.APPROVE_OPTION) {
+            try {
+                int returnValue = 0;
+                for (File file : files) {
+                    returnValue = flattenPDF(file, new File(fileDialog.getSelectedFile().toString() + File.separator
+                            + DESTINATION_FILENAME_PREFIX + file.getName()));
+                }
 
-        File sourceFile = null;
+                if (returnValue == 0) {
+                    JOptionPane.showMessageDialog(null, "Se han creado los PDF satisfactoriamente", "Proceso completo",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Ha ocurrido un error al crear el pdf.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
 
-        boolean sourceFileFromArgument = false;
-
-        if (!sourceFileFromArgument) {
-
-            fileChooser.setDialogTitle("Elegí el PDF - (PDF Plano - Por IA)");
-            fileChooser.setApproveButtonText("Seleccionar PDF");
-
-            int returnValue = fileChooser.showOpenDialog(null);
-
-            if (returnValue != JFileChooser.APPROVE_OPTION) {
-                JOptionPane.showMessageDialog(null, "No hay archivos seleccionados", "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                System.exit(1);
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
-
-            sourceFile = fileChooser.getSelectedFile();
-        }
-
-        /*
-         * Get the destination file
-         */
-
-        File destinationFile = null;
-        boolean destinationFileFromArgument = false;
-
-        if (!destinationFileFromArgument) {
-
-            destinationFile = new File(
-                    sourceFile.getAbsolutePath() + File.separator + DESTINATION_FILENAME_PREFIX + sourceFile.getName());
-
-            fileChooser.setDialogTitle("Elegir a donde guardar PDF - (PDF Plano - Por IA)");
-            fileChooser.setApproveButtonText("Seleccionar PDF destino");
-            fileChooser.setSelectedFile(destinationFile);
-
-            int returnValue = fileChooser.showSaveDialog(null);
-
-            if (returnValue != JFileChooser.APPROVE_OPTION) {
-                JOptionPane.showMessageDialog(null, "No hay archivos PDF seleccionados.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                System.exit(1);
-            }
-
-            destinationFile = fileChooser.getSelectedFile();
-        }
-
-        if (sourceFile.getPath().equals(destinationFile.getPath())
-                && sourceFile.getName().equals(destinationFile.getName())) {
-            JOptionPane.showMessageDialog(null, "No podes elegir el mismo PDF seleccionado", "Error",
-                    JOptionPane.ERROR_MESSAGE);
-            System.exit(1);
-        }
-
-        if (!destinationFile.getName().toLowerCase().endsWith(".pdf")) {
-            destinationFile = new File(destinationFile.getAbsolutePath() + ".pdf");
-        }
-
-        /*
-         * Do the flattening
-         */
-
-        JOptionPane.showMessageDialog(null,
-                "Se esta formateando el archivo\n" + sourceFile.getAbsolutePath() + "\n" + "en uno nuevo\n"
-                        + destinationFile.getAbsolutePath() + "\n\n" + "Por favor, espere",
-                "Listo para empezar", JOptionPane.INFORMATION_MESSAGE);
-
-        int returnValue = flattenPDF(sourceFile, destinationFile);
-
-        if (returnValue == 0) {
-            JOptionPane.showMessageDialog(null, "Se ha creado el PDF satisfactoriamente", "Proceso completo",
-                    JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(null, "Ha ocurrido un error al crear el pdf.", "Error",
-                    JOptionPane.ERROR_MESSAGE);
         }
 
     }
@@ -297,12 +232,10 @@ public class Controller {
 
                 log("Flattening page " + (i + 1) + " of " + pageCount + "...");
                 //////////////////////////////////
-                view.setTitle("Procesando página " + (i + 1) + " de " + pageCount + "...");
+                view.setTitle("Procesando página " + (i + 1) + " de " + pageCount + " de " + sourceFile.getName());
                 view.getPdfAsegurar().getBtnAsegurar().setEnabled(false);
 
-                
-                
-////////////////////////////////////////////////
+                ////////////////////////////////////////////////
                 BufferedImage img = pdfRenderer.renderImageWithDPI(i, IMAGE_DPI, ImageType.RGB);
 
                 log("  Image rendered in memory (" + img.getWidth() + "x" + img.getHeight() + " " + IMAGE_DPI
@@ -315,7 +248,7 @@ public class Controller {
 
                 PDPageContentStream imagePageContentStream = new PDPageContentStream(destDoc, imagePage);
                 imagePageContentStream.drawImage(imgObj, 0, 0);
-                
+
                 log("  Image added successfully.");
                 view.getPdfAsegurar().getBtnAsegurar().setEnabled(true);
                 /*
@@ -323,7 +256,8 @@ public class Controller {
                  */
 
                 imagePageContentStream.close();
-                
+                view.setTitle("PDF Merge & Flat - Por I. Arce - v0.2");
+
                 imgObj = null;
 
                 img.flush();
@@ -352,6 +286,8 @@ public class Controller {
             destDoc.close();
 
             log("Saved successfully (" + ((System.currentTimeMillis() - startMillis) / 1000.0) + " seconds).");
+
+            encriptarPDFPlano(destinationFile);
         } catch (Exception e) {
             log("Error: " + e.getMessage());
             return 1;
@@ -360,7 +296,7 @@ public class Controller {
             try {
                 sourceDoc.close();
             } catch (Exception e) {
-                // ignore 
+                // ignore
             }
 
             try {
@@ -372,11 +308,33 @@ public class Controller {
 
         return 0;
     }
-    
+
+    private static void encriptarPDFPlano(File file) {
+        PDDocument doc;
+        try {
+            doc = PDDocument.load(file);
+            AccessPermission ap = new AccessPermission();
+
+            ap.setCanPrint(false); // deshabilitar impresion !!
+
+            StandardProtectionPolicy spp = new StandardProtectionPolicy(OWNER_PASSWORD, USER_PASSWORD, ap);
+            spp.setEncryptionKeyLength(KEY_LENGTH);
+            spp.setPermissions(ap);
+
+            doc.protect(spp);
+            doc.save(file.getName());  // Cambiar esto
+            doc.close();
+            System.out.println("Exito");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     private static void log(String message) {
-		if (SHOW_DEBUG) {
-			System.out.println(new Date().toString() + " - " + message);
-		}
-	}
+        if (SHOW_DEBUG) {
+            System.out.println(new Date().toString() + " - " + message);
+        }
+    }
 
 }
