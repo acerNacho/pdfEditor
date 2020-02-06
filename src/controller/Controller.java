@@ -4,14 +4,11 @@ import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
-import org.apache.pdfbox.cos.COSObject;
-import org.apache.pdfbox.pdmodel.DefaultResourceCache;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
-import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.ImageType;
@@ -33,10 +30,13 @@ import ui.View;
 
 public class Controller {
     private static final String OWNER_PASSWORD = "prueba";
-    private static final String USER_PASSWORD = "secreta";
+    private static String userPassword = "";
     private static final int KEY_LENGTH = 128;
+
+    private static boolean encriptar = false;
+
     private static View view;
-    private final JFileChooser fileDialog = new JFileChooser();
+    private JFileChooser fileDialog = new JFileChooser();
     private File files[];
     private ArrayList<PDDocument> pdfs = new ArrayList<>();
 
@@ -49,11 +49,14 @@ public class Controller {
      * The suggested prefix to add to output files.
      */
     public static String DESTINATION_FILENAME_PREFIX = "PDFPLANO--";
+    private static final String DOCUMENT_CRYPT_PREFIX = "ENCRIPTADO--";
+    private static final boolean PRINT_ENABLED = false;
 
     /**
      * The DPI that should be used when generating images. Higher DPI increases the
      * memory requirements and output file sizes, but also produces sharper images.
      */
+
     public static int IMAGE_DPI = 200;
 
     Controller(View view) {
@@ -83,10 +86,16 @@ public class Controller {
                 break;
             case "Asegurar Pdf":
                 files = selectFiles();
-                asegurarPdf();
+                if (files != null) {
+                    asegurarPdf();
+                }
+                break;
+            case "Encriptar":
+                encriptar = !encriptar;
+                view.getPdfAsegurar().getTextArea().setEditable(encriptar);
                 break;
             default:
-                System.out.println("Error desconocido");
+                log("Error: "+ e.getActionCommand());
                 break;
             }
         }
@@ -119,6 +128,10 @@ public class Controller {
                 + ".pdf";
     }
 
+    /**
+     * Takes a PDF file and merge it with other PDF file. No metadata from the
+     * source PDF file is copied into the new PDF file.
+     */
     private void unirPdfs() {
         fileDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 
@@ -131,7 +144,7 @@ public class Controller {
                     pdfs.add(pdf);
                 }
 
-                System.out.println("uniendo");
+                log("uniendo");
                 PDFMergerUtility PDFmerger = new PDFMergerUtility();
 
                 PDFmerger.setDestinationFileName(getSeparatorBarByOS());
@@ -146,18 +159,23 @@ public class Controller {
                     try {
                         pdf.close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        log("Error: " + e.getMessage());
                     }
                 });
 
                 view.getPanelUnir().getStatusLabel().setText("Se ha creado el pdf sin errores");
-            } catch (Exception ex) {
+            } catch (Exception e) {
                 view.getPanelUnir().getStatusLabel().setText("Se produjo un error al crear el PDF");
-                ex.printStackTrace();
+                log("Error: " + e.getMessage());
             }
         }
     }
 
+    /**
+     * Takes a PDF file and flattens it into a new PDF file. The new PDF file is a
+     * series of images generated from the source PDF file. No metadata from the
+     * source PDF file is copied into the new PDF file.
+     */
     private void asegurarPdf() {
         fileDialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileDialog.setDialogTitle("Elegir a donde guardar PDF - (PDF Plano - Por IA)");
@@ -179,8 +197,8 @@ public class Controller {
                             JOptionPane.ERROR_MESSAGE);
                 }
 
-            } catch (Exception ex) {
-                ex.printStackTrace();
+            } catch (Exception e) {
+                log("Error: " + e.getMessage());
             }
         }
 
@@ -195,51 +213,24 @@ public class Controller {
      * @param destinationFile - The output PDF file.
      * @return - 0 if successful
      */
-    public static int flattenPDF(File sourceFile, File destinationFile) {
 
-        long startMillis = System.currentTimeMillis();
+    public static int flattenPDF(File sourceFile, File destinationFile) {
 
         PDDocument sourceDoc = null;
         PDDocument destDoc = new PDDocument();
 
         try {
-
-            long maxAvailableMemoryInMB = Runtime.getRuntime().maxMemory() / 1024 / 1024;
-
-            // If less than 1GB available, be more memory conscious
-            if (maxAvailableMemoryInMB < 2048) {
-
-                log("Max memory limited to " + maxAvailableMemoryInMB + "MB. Resource cache will be disabled.");
-
-                sourceDoc = PDDocument.load(sourceFile, MemoryUsageSetting.setupTempFileOnly());
-
-                sourceDoc.setResourceCache(new DefaultResourceCache() {
-                    public void put(COSObject indirect, PDXObject xobject) {
-                        // discard
-                    }
-                });
-            } else {
-                sourceDoc = PDDocument.load(sourceFile);
-            }
-
+            /*sourceDoc = PDDocument.load(sourceFile, MemoryUsageSetting.setupTempFileOnly());  Por si hay poca memoria */
+            sourceDoc = PDDocument.load(sourceFile);
             PDFRenderer pdfRenderer = new PDFRenderer(sourceDoc);
-
             final int pageCount = sourceDoc.getDocumentCatalog().getPages().getCount();
-
-            log(pageCount + " page" + (pageCount == 1 ? "" : "s") + " to flatten.");
 
             for (int i = 0; i < pageCount; i += 1) {
 
-                log("Flattening page " + (i + 1) + " of " + pageCount + "...");
-                //////////////////////////////////
                 view.setTitle("Procesando página " + (i + 1) + " de " + pageCount + " de " + sourceFile.getName());
                 view.getPdfAsegurar().getBtnAsegurar().setEnabled(false);
 
-                ////////////////////////////////////////////////
                 BufferedImage img = pdfRenderer.renderImageWithDPI(i, IMAGE_DPI, ImageType.RGB);
-
-                log("  Image rendered in memory (" + img.getWidth() + "x" + img.getHeight() + " " + IMAGE_DPI
-                        + "DPI).  Adding to PDF...");
 
                 PDPage imagePage = new PDPage(new PDRectangle(img.getWidth(), img.getHeight()));
                 destDoc.addPage(imagePage);
@@ -251,6 +242,7 @@ public class Controller {
 
                 log("  Image added successfully.");
                 view.getPdfAsegurar().getBtnAsegurar().setEnabled(true);
+
                 /*
                  * Close and clear images
                  */
@@ -282,12 +274,17 @@ public class Controller {
 
             log("Saving new flattened PDF...");
 
-            destDoc.save(destinationFile);
+            if (encriptar) {
+                encryptDoc(destDoc,destinationFile);
+            } else {
+                destDoc.save(destinationFile);
+            }
+            
             destDoc.close();
 
-            log("Saved successfully (" + ((System.currentTimeMillis() - startMillis) / 1000.0) + " seconds).");
+            log("Saved successfully.");
 
-            encriptarPDFPlano(destinationFile);
+            
         } catch (Exception e) {
             log("Error: " + e.getMessage());
             return 1;
@@ -309,22 +306,21 @@ public class Controller {
         return 0;
     }
 
-    private static void encriptarPDFPlano(File file) {
-        PDDocument doc;
+    private static void encryptDoc(PDDocument doc, File destFile) {
         try {
-            doc = PDDocument.load(file);
-            AccessPermission ap = new AccessPermission();
+            final AccessPermission ap = new AccessPermission();
 
-            ap.setCanPrint(false); // deshabilitar impresion !!
+            ap.setCanPrint(PRINT_ENABLED);
 
-            StandardProtectionPolicy spp = new StandardProtectionPolicy(OWNER_PASSWORD, USER_PASSWORD, ap);
+            userPassword = view.getPdfAsegurar().getTextArea().getText();
+
+            StandardProtectionPolicy spp = new StandardProtectionPolicy(OWNER_PASSWORD, userPassword, ap);
             spp.setEncryptionKeyLength(KEY_LENGTH);
             spp.setPermissions(ap);
 
             doc.protect(spp);
-            doc.save(file.getName());  // Cambiar esto
+            doc.save(destFile.getParent() + File.separator + DOCUMENT_CRYPT_PREFIX + destFile.getName()); // cambiar esto
             doc.close();
-            System.out.println("Exito");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -333,7 +329,12 @@ public class Controller {
 
     private static void log(String message) {
         if (SHOW_DEBUG) {
-            System.out.println(new Date().toString() + " - " + message);
+            if (message.startsWith("Error")) {
+                System.err.println(new Date().toString() + " - " + message);
+            } else {
+                System.out.println(new Date().toString() + " - " + message);
+            }
+            
         }
     }
 
