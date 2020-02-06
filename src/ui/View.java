@@ -60,7 +60,7 @@ public class View extends JFrame {
 	public void agregarListeners(ActionListener action) {
 		panelUnir.getBtnFiles().addActionListener(action);
 		panelUnir.getBtnMerge().addActionListener(action);
-
+		panelAsegurar.getCheckBox().addActionListener(action);
 		panelAsegurar.getBtnAsegurar().addActionListener(action);
 	}
 
