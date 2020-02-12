@@ -7,7 +7,6 @@ import java.awt.event.ActionListener;
 import javax.swing.JFrame;
 import javax.swing.JTabbedPane;
 
-
 /**
  * Class responsible for launching the Vencimiento System.
  * 
@@ -18,23 +17,35 @@ public class View extends JFrame {
 
 	private static final long serialVersionUID = 1L;
 	private final Container cp = getContentPane();
-	private PanelPdfUnir panelUnir = new PanelPdfUnir();
-	private PanelPdfAsegurar panelAsegurar = new PanelPdfAsegurar();
-	private JTabbedPane tabbedPane = new JTabbedPane();
+	private PanelPdfUnir panelUnir;
+	private PanelPdfAsegurar panelAsegurar;
+	private PanelPdfFirmar panelFirmar;
+	private JTabbedPane tabbedPane;
+
 	/**
 	 * Initialise the JFrame containing the various JSwing components responsible of
 	 * the Vencimiento System.
 	 */
 	public View() {
-		crearGUI();
+		super("PDF Merge & Flat - Por I. Arce - v0.3");
+
+		// set look and feel
+		try {
+			javax.swing.UIManager.setLookAndFeel("javax.swing.plaf.nimbus.NimbusLookAndFeel");
+			/*
+			javax.swing.UIManager.LookAndFeelInfo[] looks = javax.swing.UIManager.getInstalledLookAndFeels(); 
+        	for (javax.swing.UIManager.LookAndFeelInfo look : looks) { 
+            	System.out.println(look.getClassName()); 
+        	} */
+		} catch (Exception e) {e.printStackTrace();}
 		
-		setTitle("PDF Merge & Flat - Por I. Arce - v0.2");
+
+		crearGUI();
+		pack();
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
 		setSize(600, 200);
 	}
-
-
 
 	/**
 	 * Crear GUI: Crea un panel de contenido del tipo CardLayout y en el crea el
@@ -42,6 +53,14 @@ public class View extends JFrame {
 	 */
 
 	public void crearGUI() {
+		
+		panelUnir = new PanelPdfUnir("Unir");
+		panelAsegurar = new PanelPdfAsegurar("Proteger");
+		panelFirmar = new PanelPdfFirmar("Firmar");
+
+
+		tabbedPane = new JTabbedPane();
+
 		cp.setLayout(new BorderLayout());
 
 		// tabbedPane
@@ -53,23 +72,32 @@ public class View extends JFrame {
 		// Panel asegurar
 		tabbedPane.addTab("Asegurar", null, panelAsegurar,"Asegura el PDF elegido como imagen");
 		pack();
+
+		// Panel firmar
+		// tabbedPane.addTab("Firmar", null, panelFirmar,"Firma el PDF elegido");
+		pack();
 		
 		cp.add(tabbedPane, BorderLayout.CENTER);
 	}
 
 	public void agregarListeners(ActionListener action) {
 		panelUnir.getBtnFiles().addActionListener(action);
-		panelUnir.getBtnMerge().addActionListener(action);
+		panelUnir.getBtnAction().addActionListener(action);
 		panelAsegurar.getCheckBox().addActionListener(action);
-		panelAsegurar.getBtnAsegurar().addActionListener(action);
+		panelAsegurar.getBtnFiles().addActionListener(action);
+		panelAsegurar.getBtnAction().addActionListener(action);
 	}
 
-	public PanelPdfUnir getPanelUnir() {
+	public PanelPdf getPanelPdfUnir() {
 		return panelUnir;
 	}
 
-	public PanelPdfAsegurar getPdfAsegurar() {
+	public PanelPdfAsegurar getPanelPdfAsegurar() {
 		return panelAsegurar;
+	}
+
+	public JTabbedPane getTabbedPane() {
+		return tabbedPane;
 	}
 
 }

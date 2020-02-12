@@ -1,49 +1,51 @@
 package ui;
 
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import java.awt.GridLayout;
 
-public class PanelPdfAsegurar extends JPanel {
+public class PanelPdfAsegurar extends PanelPdf {
+
 
     /**
      *
      */
     private static final long serialVersionUID = 1L;
-    private JLabel headerLabel = new JLabel("Seleccionar PDF a aplanar");
-    private JButton btnAsegurar = new JButton("Asegurar Pdf");
-    private JCheckBox checkBox = new JCheckBox("Encriptar");
-    private JTextField textArea = new JTextField("");
+
+    private JCheckBox checkBox1 = new JCheckBox("Encriptar");
+    private JCheckBox checkBox2 = new JCheckBox("Quitar formato");
+    private JTextField textField = new JTextField("");
     
-    public PanelPdfAsegurar() {
-        setLayout(new GridLayout(3,3, 5 ,5));
+    public PanelPdfAsegurar(String action) {
+        super(action);
         
-        textArea.setEditable(false);
-        add(headerLabel);
-        add(btnAsegurar);
-        add(checkBox);
-        add(textArea);
+
+        // JTextField properties
+        textField.setEditable(false);
+        textField.setEnabled(false);
+        textField.setHorizontalAlignment(JTextField.CENTER); 
+
+
+        // JCheckBox properties
+        checkBox1.setHorizontalAlignment(JCheckBox.CENTER);
+        checkBox2.setHorizontalAlignment(JCheckBox.CENTER);
+
+        checkBox2.setVisible(false);
+        // TODO : FIX THIS
+
+        // Add components to the panel
+        add(checkBox1);
+        add(textField);
+        add(checkBox2);
         
-    }
-
-    public JButton getBtnAsegurar() {
-        return btnAsegurar;
-    }
-
-    public JLabel getHeaderLabel() {
-        return headerLabel;
     }
 
     public JCheckBox getCheckBox() {
-        return checkBox;
+        return checkBox1;
     }
 
-    public JTextField getTextArea() {
-        return textArea;
+    public JTextField getTextField() {
+        return textField;
     }
 
     

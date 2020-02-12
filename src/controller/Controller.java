@@ -1,7 +1,9 @@
 package controller;
 
+import org.apache.pdfbox.cos.COSObject;
 import org.apache.pdfbox.io.MemoryUsageSetting;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
+import org.apache.pdfbox.pdmodel.DefaultResourceCache;
 import org.apache.pdfbox.pdmodel.PDDocument;
 
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -9,6 +11,7 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
 import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
+import org.apache.pdfbox.pdmodel.graphics.PDXObject;
 import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.rendering.ImageType;
@@ -26,6 +29,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
+import ui.PanelPdf;
 import ui.View;
 
 public class Controller {
@@ -34,6 +38,7 @@ public class Controller {
     private static final int KEY_LENGTH = 128;
 
     private static boolean encriptar = false;
+    private static boolean formatear = false;
 
     private static View view;
     private JFileChooser fileDialog = new JFileChooser();
@@ -69,30 +74,40 @@ public class Controller {
 
     private class BotonesListener implements ActionListener {
 
-        @Override
+
+        @Override 
         public void actionPerformed(ActionEvent e) {
             switch (e.getActionCommand()) {
-            case "Seleccionar pdfs":
+            case "Seleccionar":
                 files = selectFiles();
-                if (files != null && files.length > 1) {
-                    view.getPanelUnir().getBtnMerge().setVisible(true);
-                    view.getPanelUnir().getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
-                } else {
-                    view.getPanelUnir().getStatusLabel().setText("Cancelado por el usuario");
+                PanelPdf panelSeleccionado = (PanelPdf) view.getTabbedPane().getSelectedComponent();
+
+                if (files != null) {
+                    if(panelSeleccionado.getBtnAction().getText().equals("Proteger")) {
+                        panelSeleccionado.getBtnAction().setVisible(true);
+                        panelSeleccionado.getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
+                        
+                    } else if (files.length > 1) {
+                        panelSeleccionado.getBtnAction().setVisible(true);
+                        panelSeleccionado.getStatusLabel().setText("Se han seleccionado " + files.length + " archivos");
+                    } 
+                }else {
+                    panelSeleccionado.getStatusLabel().setText("Cancelado por el usuario");
                 }
                 break;
             case "Unir":
                 unirPdfs();
                 break;
-            case "Asegurar Pdf":
-                files = selectFiles();
-                if (files != null) {
-                    asegurarPdf();
-                }
+            case "Proteger":
+                asegurarPdf();
                 break;
             case "Encriptar":
                 encriptar = !encriptar;
-                view.getPdfAsegurar().getTextArea().setEditable(encriptar);
+                view.getPanelPdfAsegurar().getTextField().setEditable(encriptar);
+                view.getPanelPdfAsegurar().getTextField().setEnabled(encriptar);
+                break;
+            case "Quitar formato":
+                formatear = !formatear;
                 break;
             default:
                 log("Error: "+ e.getActionCommand());
@@ -163,9 +178,9 @@ public class Controller {
                     }
                 });
 
-                view.getPanelUnir().getStatusLabel().setText("Se ha creado el pdf sin errores");
+                view.getPanelPdfUnir().getStatusLabel().setText("Se ha creado el pdf sin errores");
             } catch (Exception e) {
-                view.getPanelUnir().getStatusLabel().setText("Se produjo un error al crear el PDF");
+                view.getPanelPdfUnir().getStatusLabel().setText("Se produjo un error al crear el PDF");
                 log("Error: " + e.getMessage());
             }
         }
@@ -185,10 +200,9 @@ public class Controller {
             try {
                 int returnValue = 0;
                 for (File file : files) {
-                    returnValue = flattenPDF(file, new File(fileDialog.getSelectedFile().toString() + File.separator
+                        returnValue = flattenPDF(file, new File(fileDialog.getSelectedFile().toString() + File.separator
                             + DESTINATION_FILENAME_PREFIX + file.getName()));
                 }
-
                 if (returnValue == 0) {
                     JOptionPane.showMessageDialog(null, "Se han creado los PDF satisfactoriamente", "Proceso completo",
                             JOptionPane.INFORMATION_MESSAGE);
@@ -220,15 +234,35 @@ public class Controller {
         PDDocument destDoc = new PDDocument();
 
         try {
-            /*sourceDoc = PDDocument.load(sourceFile, MemoryUsageSetting.setupTempFileOnly());  Por si hay poca memoria */
-            sourceDoc = PDDocument.load(sourceFile);
+ 
+            long maxAvailableMemoryInMB = Runtime.getRuntime().maxMemory() / 1024 / 1024;
+			
+			// If less than 1GB available, be more memory conscious
+			if (maxAvailableMemoryInMB < 2048) {
+				
+				log("Max memory limited to " + maxAvailableMemoryInMB + "MB. Resource cache will be disabled.");
+				
+				sourceDoc = PDDocument.load(sourceFile, MemoryUsageSetting.setupTempFileOnly());
+
+				sourceDoc.setResourceCache(new DefaultResourceCache() {
+					public void put (COSObject indirect, PDXObject xobject) {
+						// discard
+					}
+				});
+			}
+			else {
+				sourceDoc = PDDocument.load(sourceFile);
+            }
+            
+            // sourceDoc = PDDocument.load(sourceFile, MemoryUsageSetting.setupTempFileOnly()); //  Por si hay poca memoria pero lento
+            // sourceDoc = PDDocument.load(sourceFile); mas memoria pero se traba
             PDFRenderer pdfRenderer = new PDFRenderer(sourceDoc);
             final int pageCount = sourceDoc.getDocumentCatalog().getPages().getCount();
 
             for (int i = 0; i < pageCount; i += 1) {
-
+                log("Procesando página " + (i + 1) + " de " + pageCount + " de " + sourceFile.getName());
                 view.setTitle("Procesando página " + (i + 1) + " de " + pageCount + " de " + sourceFile.getName());
-                view.getPdfAsegurar().getBtnAsegurar().setEnabled(false);
+                view.getPanelPdfAsegurar().getBtnAction().setEnabled(false);
 
                 BufferedImage img = pdfRenderer.renderImageWithDPI(i, IMAGE_DPI, ImageType.RGB);
 
@@ -240,15 +274,16 @@ public class Controller {
                 PDPageContentStream imagePageContentStream = new PDPageContentStream(destDoc, imagePage);
                 imagePageContentStream.drawImage(imgObj, 0, 0);
 
-                log("  Image added successfully.");
-                view.getPdfAsegurar().getBtnAsegurar().setEnabled(true);
+                log("Image added successfully.");
+                view.getPanelPdfAsegurar().getBtnAction().setEnabled(true);
 
                 /*
                  * Close and clear images
                  */
 
+                log("Close and clear images.");
                 imagePageContentStream.close();
-                view.setTitle("PDF Merge & Flat - Por I. Arce - v0.2");
+                view.setTitle("PDF Merge & Flat - Por I. Arce - v0.3");
 
                 imgObj = null;
 
@@ -273,6 +308,8 @@ public class Controller {
              */
 
             log("Saving new flattened PDF...");
+            
+            
 
             if (encriptar) {
                 encryptDoc(destDoc,destinationFile);
@@ -283,7 +320,6 @@ public class Controller {
             destDoc.close();
 
             log("Saved successfully.");
-
             
         } catch (Exception e) {
             log("Error: " + e.getMessage());
@@ -312,7 +348,7 @@ public class Controller {
 
             ap.setCanPrint(PRINT_ENABLED);
 
-            userPassword = view.getPdfAsegurar().getTextArea().getText();
+            userPassword = view.getPanelPdfAsegurar().getTextField().getText();
 
             StandardProtectionPolicy spp = new StandardProtectionPolicy(OWNER_PASSWORD, userPassword, ap);
             spp.setEncryptionKeyLength(KEY_LENGTH);
@@ -330,6 +366,8 @@ public class Controller {
     private static void log(String message) {
         if (SHOW_DEBUG) {
             if (message.startsWith("Error")) {
+                JOptionPane.showMessageDialog(null, message, "Error",
+                            JOptionPane.ERROR_MESSAGE);
                 System.err.println(new Date().toString() + " - " + message);
             } else {
                 System.out.println(new Date().toString() + " - " + message);

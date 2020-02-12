@@ -1,6 +1,6 @@
 package ui;
 
-public class PanelPdfUnir extends PanelPdf {
+public class PanelPdfFirmar extends PanelPdf {
 
 	/**
 	 *
@@ -11,7 +11,7 @@ public class PanelPdfUnir extends PanelPdf {
 	 *
 	 */
     
-    public PanelPdfUnir(String action) {
+    public PanelPdfFirmar(String action) {
 		super(action);
     }
 
