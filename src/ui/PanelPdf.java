@@ -1,10 +1,6 @@
 package ui;
 
-import javax.swing.JButton;
-import javax.swing.JLabel;
-import javax.swing.JPanel;
-import java.awt.GridLayout;
-
+import javax.swing.*;
 
 public class PanelPdf extends JPanel {
 
@@ -19,7 +15,8 @@ public class PanelPdf extends JPanel {
         super();
         
         
-		setLayout(new GridLayout(4, 2, 5, 5));
+        //setLayout(new GridLayout(3, 2, 50, 5));
+        setLayout(new SpringLayout());
         
         this.btnAction.setText(action);
         
@@ -30,8 +27,7 @@ public class PanelPdf extends JPanel {
 
         headerLabel.setText("Elija los pdfs a " + action + " y luego el destino");
 		
-        btnFiles.setHorizontalAlignment(JButton.CENTER);
-        
+        //btnFiles.setHorizontalAlignment(JButton.CENTER);
         
         add(headerLabel);
         
@@ -39,7 +35,9 @@ public class PanelPdf extends JPanel {
 
 		add(statusLabel);
 
-		add(btnAction);
+        add(btnAction);
+        
+
     }
 
     public JLabel getHeaderLabel() {

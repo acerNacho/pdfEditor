@@ -13,6 +13,10 @@ public class PanelPdfUnir extends PanelPdf {
     
     public PanelPdfUnir(String action) {
 		super(action);
+		SpringUtilities.makeCompactGrid(this,
+                                        2, 2, //rows, cols
+                                        12, 12,        //initX, initY
+                                        6, 6);       //xPad, yPad
     }
 
 }

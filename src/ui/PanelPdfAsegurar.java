@@ -23,20 +23,27 @@ public class PanelPdfAsegurar extends PanelPdf {
         // JTextField properties
         textField.setEditable(false);
         textField.setEnabled(false);
-        textField.setHorizontalAlignment(JTextField.CENTER); 
+        //textField.setHorizontalAlignment(JTextField.CENTER); 
 
 
         // JCheckBox properties
-        checkBox1.setHorizontalAlignment(JCheckBox.CENTER);
-        checkBox2.setHorizontalAlignment(JCheckBox.CENTER);
+        checkBox1.setAlignmentX(JCheckBox.CENTER);
+        //checkBox2.setHorizontalAlignment(JCheckBox.CENTER);
 
-        checkBox2.setVisible(false);
-        // TODO : FIX THIS
+        
+        
 
         // Add components to the panel
         add(checkBox1);
         add(textField);
-        add(checkBox2);
+
+        // TODO : FIX THIS
+        //add(checkBox2);
+
+        SpringUtilities.makeCompactGrid(this,
+                                        3, 2, //rows, cols
+                                        6, 6,        //initX, initY
+                                        6, 6);       //xPad, yPad
         
     }
 

@@ -44,7 +44,7 @@ public class View extends JFrame {
 		pack();
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setLocationRelativeTo(null);
-		setSize(600, 200);
+		setSize(400, 200);
 	}
 
 	/**
@@ -71,7 +71,6 @@ public class View extends JFrame {
 
 		// Panel asegurar
 		tabbedPane.addTab("Asegurar", null, panelAsegurar,"Asegura el PDF elegido como imagen");
-		pack();
 
 		// Panel firmar
 		// tabbedPane.addTab("Firmar", null, panelFirmar,"Firma el PDF elegido");
